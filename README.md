@@ -154,14 +154,14 @@ sbatch --nodes=2 slurm/setonix.slurm
 sbatch --nodes=4 slurm/setonix.slurm
 ```
 
-**Kaya** (UWA, on campus or VPN): set the partition, the physical cores per node and the module names
-(lines marked `<-- CHANGE` in `slurm/kaya.slurm`). The job picks `srun` or OpenMPI's `mpirun`
-automatically, whichever starts a 2-process MPI job.
+**Kaya** (UWA, on campus or VPN): `slurm/kaya.slurm` targets the course partition `cits3402` (4 nodes,
+96 CPUs and ~1.5 TB each, 2 h limit). It uses physical cores only (adding `--hint=nomultithread` if
+hyper-threading is present), and it picks `srun` or OpenMPI's `mpirun` automatically. Only the
+`module load` line may need adjusting.
 ```bash
-ssh <username>@kaya.hpc.uwa.edu.au
+ssh cits122@kaya.hpc.uwa.edu.au
 git clone https://github.com/kopernik278/hybrid-mpi-openmp-hash-collision.git
 cd hybrid-mpi-openmp-hash-collision
-sinfo -s; sinfo -N -o "%N %P %c %m" | head; module avail openmpi   # values for the CHANGE lines
 sbatch --nodes=1 --time=00:05:00 --export=ALL,EXPS=smoke slurm/kaya.slurm
 sbatch --nodes=1 slurm/kaya.slurm    # likewise for --nodes=2 and --nodes=4
 ```

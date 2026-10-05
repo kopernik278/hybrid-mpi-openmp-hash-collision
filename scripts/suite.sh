@@ -119,7 +119,9 @@ scale)  # fixed-work throughput: serial, OpenMP, MPI and hybrid (gamma pair, ful
         runr scale "$TOTAL" 1 birthday_mpi $A3 --benchmark $(nbench "$TOTAL")
     fi
     # hybrid: same total core count, different ranks x threads splits
-    for t in 2 4 8 16 32 64 128; do
+    # (powers of two plus CPN/2 and CPN, e.g. 2 4 8 16 32 48 96 on 96-core nodes)
+    for t in $(printf '%s\n' 2 4 8 16 32 64 128 $((CPN / 2)) "$CPN" | sort -n | uniq); do
+        [ "$t" -lt 2 ] && continue
         [ "$t" -gt "$CPN" ] && break
         [ $((CPN % t)) -ne 0 ] && continue
         runr scale $((TOTAL / t)) "$t" birthday_hybrid $A3 --benchmark $(nbench "$TOTAL")

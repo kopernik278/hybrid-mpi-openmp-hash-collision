@@ -3,7 +3,8 @@
 # Author: Shaoming Wu (24914408)
 #   sbatch slurm/solve_one.slurm                                   # all six pairs, K=1
 #   sbatch --export=ALL,PAIRS="6_zeta",K=4 slurm/solve_one.slurm   # one pair, 4 collisions
-# On Kaya: remove the --account line, set --partition, and use 'module load gcc openmpi'.
+# On Kaya: delete the --account line, use --partition=cits3402 and 12 ranks x 8 threads
+# (--ntasks-per-node=12) for the 96-core nodes, and add 'module load gcc openmpi'.
 #
 #SBATCH --job-name=birthday-solve
 #SBATCH --account=courses0100        # <-- CHANGE (Setonix project code; delete on Kaya)
