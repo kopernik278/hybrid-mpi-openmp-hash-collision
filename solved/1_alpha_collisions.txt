@@ -1,0 +1,3 @@
+# 1_alpha: 1 verified distinct collision(s), student id 24914408
+# i hash nonceA nonceB
+1 19313cea24fd 00000100007da46b 00000100008d0c4a

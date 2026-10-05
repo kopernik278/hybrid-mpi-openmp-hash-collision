@@ -1,0 +1,24 @@
+# build outputs
+birthday_serial
+birthday_omp
+birthday_mpi
+birthday_hybrid
+*.o
+*.dSYM/
+test_out/
+cits3402_a2_submission/
+cits3402_a2_submission.zip
+
+# LaTeX intermediates
+report/*.aux
+report/*.log
+report/*.out
+report/*.synctex.gz
+
+# OS / editor
+.DS_Store
+.vscode/
+.claude/
+
+# course handout (not ours to redistribute)
+cits3402_assignment_02_2026.pdf

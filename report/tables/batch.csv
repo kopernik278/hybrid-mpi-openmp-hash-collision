@@ -1,0 +1,21 @@
+plat,set,ranks,threads,B,msgs,thr,comm_pct
+Apple M4 (dev.),"MPI, full kernel",8,1,1,1835487,103006.0,76.972782780529
+Apple M4 (dev.),"MPI, full kernel",8,1,4,458892,238949.0,48.94096320198347
+Apple M4 (dev.),"MPI, full kernel",8,1,16,114745,462673.0,8.636506938817112
+Apple M4 (dev.),"MPI, full kernel",8,1,64,28706,519345.0,0.8934214149722938
+Apple M4 (dev.),"MPI, full kernel",8,1,256,7202,495588.0,0.7680470134288299
+Apple M4 (dev.),"MPI, full kernel",8,1,1024,1823,489530.0,1.1952592058651617
+Apple M4 (dev.),"MPI, full kernel",8,1,4096,479,495397.0,1.0672826753004885
+Apple M4 (dev.),"MPI, full kernel",8,1,16384,143,489823.0,0.8867792189046277
+Apple M4 (dev.),"Hybrid, full kernel",2,4,1,1049049,411035.0,60.318004752921574
+Apple M4 (dev.),"Hybrid, full kernel",2,4,16,65567,431986.0,48.50489538232925
+Apple M4 (dev.),"Hybrid, full kernel",2,4,256,4099,488483.0,1.625363686188811
+Apple M4 (dev.),"Hybrid, full kernel",2,4,4096,258,485276.0,2.772096966701423
+Apple M4 (dev.),"MPI, fast kernel",8,1,1,29358002,4613710.0,99.63247785331538
+Apple M4 (dev.),"MPI, fast kernel",8,1,4,7339522,13290400.0,98.75479113104558
+Apple M4 (dev.),"MPI, fast kernel",8,1,16,1834898,30970500.0,96.97331902077751
+Apple M4 (dev.),"MPI, fast kernel",8,1,64,458747,48748900.0,95.27627006357582
+Apple M4 (dev.),"MPI, fast kernel",8,1,256,114710,62942000.0,94.17708839413169
+Apple M4 (dev.),"MPI, fast kernel",8,1,1024,28698,67475100.0,93.71247129418484
+Apple M4 (dev.),"MPI, fast kernel",8,1,4096,7196,72299400.0,92.52387395928498
+Apple M4 (dev.),"MPI, fast kernel",8,1,16384,1820,62912600.0,93.50651542139309

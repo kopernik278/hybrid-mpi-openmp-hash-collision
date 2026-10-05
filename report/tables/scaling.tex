@@ -1,0 +1,10 @@
+\begin{tabular}{lrrrrrr}
+\toprule
+program & nodes & ranks$\times$thr. & cores & $X$ & $S$ & $E$\\
+\midrule\multicolumn{7}{l}{\textit{Apple M4 (dev.)}, 8 cores per node}\\
+serial & 1 & 1$\times$1 & 1 & 32.4\,k & 1.0 & 100\%\\
+OpenMP & 1 & 1$\times$8 & 8 & 153.6\,k & 4.7 & 59\%\\
+MPI & 1 & 8$\times$1 & 8 & 149.6\,k & 4.6 & 58\%\\
+hybrid & 1 & 2$\times$4 & 8 & 149.8\,k & 4.6 & 58\%\\
+\bottomrule
+\end{tabular}

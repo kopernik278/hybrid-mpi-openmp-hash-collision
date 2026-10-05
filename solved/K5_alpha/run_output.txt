@@ -1,0 +1,16 @@
+birthday_hybrid: 2 process(es) on 1 node(s) x 4 thread(s), mode=search, K=5, batch=1024, flush=100ms, kernel=full
+MPI thread support: requested MPI_THREAD_FUNNELED, provided level 1
+files: 1_alpha_a.pdf, 1_alpha_b.pdf (66560 / 66560 bytes), student id 24914408
+collision 1: hash=19313cea24fd nonceA=00000100007da46b nonceB=00000100008d0c4a owner=1 t=65.306s VERIFIED
+collision 2: hash=03464b8874cc nonceA=0000000000ad9347 nonceB=00000000006f97b2 owner=0 t=81.095s VERIFIED
+collision 3: hash=8b00065da489 nonceA=0000010000ada7fb nonceB=0000010000b2de42 owner=1 t=83.745s VERIFIED
+collision 4: hash=f86eebc37bfd nonceA=0000010000e1993a nonceB=000000000034c456 owner=1 t=106.372s VERIFIED
+collision 5: hash=703629da49ff nonceA=00000100012d2f46 nonceB=000000000068be3f owner=1 t=143.366s VERIFIED
+search time 143.371 s, 78935424 trials, throughput 5.506e+05 trials/s
+messages 40207 (631.5 MB), remote records 39467003, local records 39465576, comm time max 9.799 s, drain 0.002 s
+found 5 distinct collision(s) (requested 5), 5 verified, stop decided at 143.366 s
+wrote solved/K5_alpha/1_alpha_a.pdf
+wrote solved/K5_alpha/1_alpha_b.pdf
+wrote solved/K5_alpha/1_alpha_collisions.txt
+JSON {"impl":"hybrid","ranks":2,"threads":4,"nodes":1,"mode":"search","K":5,"batch":1024,"flush_ms":100,"kernel":"full","pair":"1_alpha","file_bytes":66560,"trials":78935424,"elapsed":143.371407,"throughput":550566,"msgs":40207,"bytes":631472048,"recs_remote":39467003,"recs_local":39465576,"t_comm_max":9.799064,"t_comm_mean":9.765684,"t_insert_max":3.384505,"t_drain_max":0.002392,"found":5,"verified":5,"t_first":65.306191,"t_stop":143.366201,"avail_idx":39476870,"trials_per_rank":39467712.0,"seed":0,"units_iter":124,"host":"192.168.5.11"}
+exit=0
