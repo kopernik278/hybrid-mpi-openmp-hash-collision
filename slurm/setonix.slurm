@@ -42,5 +42,12 @@ if [ -z "${EXPS:-}" ]; then
     esac
 fi
 export EXPS
+export STEP_MIN=${STEP_MIN:-10}   # one slow configuration cannot use up the whole job
+# B < 64 with 512 Cray-MPICH processes takes > 10 min per run (B=1: 796 s, B=4: 141 s,
+# job 50453693); those points are already measured, so skip them by default.
+if [ "$NODES" -ge 4 ]; then
+    export BLIST=${BLIST:-"64 256 1024 4096 16384"}
+    export HBLIST=${HBLIST:-"64 256 4096"}
+fi
 lscpu > "results/setonix-${SLURM_JOB_ID}.lscpu" 2>/dev/null
 scripts/suite.sh

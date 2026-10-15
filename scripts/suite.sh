@@ -22,6 +22,9 @@
 #   SEEDS     seeds for the kfast experiment (default 0..9)
 #   BLIST     batch sizes of the batch experiment (default 1 4 16 ... 16384)
 #   HBLIST    batch sizes of its hybrid part      (default 1 16 256 4096)
+#   STEP_MIN  time limit of each single run in minutes (0 = none).  A run that
+#             exceeds it is killed and logged, and the job continues with the
+#             next run instead of losing everything to the job's time limit.
 #
 # Example (local):  PLATFORM=m4 CPN=8 EXPS="scale batch" scripts/suite.sh
 set -u
@@ -40,6 +43,14 @@ REPEAT=${REPEAT:-1}
 SEEDS=${SEEDS:-"0 1 2 3 4 5 6 7 8 9"}
 BLIST=${BLIST:-"1 4 16 64 256 1024 4096 16384"}
 HBLIST=${HBLIST:-"1 16 256 4096"}
+STEP_MIN=${STEP_MIN:-0}
+# srun limits a job step with --time; other launchers use coreutils timeout
+TLIM=""
+SLIM=""
+if [ "$STEP_MIN" -gt 0 ]; then
+    SLIM="--time=$STEP_MIN"
+    command -v timeout >/dev/null && TLIM="timeout ${STEP_MIN}m"
+fi
 TOTAL=$((NODES * CPN))
 mkdir -p "$(dirname "$OUT")"
 
@@ -58,24 +69,31 @@ run() {
     case $bin in
     birthday_serial|birthday_omp)
         if [ "$LAUNCHER" = srun ]; then
-            cmd="srun --nodes=1 --ntasks=1 --cpus-per-task=$t --cpu-bind=cores $SRUN_EXTRA ./$bin"
+            cmd="srun --nodes=1 --ntasks=1 --cpus-per-task=$t --cpu-bind=cores $SLIM $SRUN_EXTRA ./$bin"
         else
-            cmd="./$bin"
+            cmd="$TLIM ./$bin"
         fi ;;
     *)
         local nn=$NODES
         [ "$n" -lt "$NODES" ] && nn=$n
         local ppn=$(( (n + nn - 1) / nn ))
         case $LAUNCHER in
-        srun) cmd="srun --nodes=$nn --ntasks=$n --ntasks-per-node=$ppn --cpus-per-task=$t --cpu-bind=cores $SRUN_EXTRA ./$bin" ;;
-        ompi) cmd="mpirun -np $n --map-by ppr:$ppn:node:PE=$t --bind-to core -x OMP_NUM_THREADS -x OMP_PLACES -x OMP_PROC_BIND ./$bin" ;;
-        *)    cmd="mpiexec -n $n ./$bin" ;;
+        srun) cmd="srun --nodes=$nn --ntasks=$n --ntasks-per-node=$ppn --cpus-per-task=$t --cpu-bind=cores $SLIM $SRUN_EXTRA ./$bin" ;;
+        ompi) cmd="$TLIM mpirun -np $n --map-by ppr:$ppn:node:PE=$t --bind-to core -x OMP_NUM_THREADS -x OMP_PLACES -x OMP_PROC_BIND ./$bin" ;;
+        *)    cmd="$TLIM mpiexec -n $n ./$bin" ;;
         esac ;;
     esac
     echo "[$(date +%H:%M:%S)] $exp: $cmd $* $SIDARG" >&2
     echo "### $exp: $cmd $* $SIDARG" >> "$LOG"
+    local before after
+    before=$(cat "$OUT" 2>/dev/null | wc -l)
     $cmd "$@" $SIDARG -q 2>&1 | tee -a "$LOG" | grep '^JSON ' |
         sed "s/^JSON {/{\"platform\":\"$PLATFORM\",\"exp\":\"$exp\",/" | tee -a "$OUT"
+    after=$(cat "$OUT" 2>/dev/null | wc -l)
+    if [ "$after" -le "$before" ]; then
+        echo "[$(date +%H:%M:%S)] $exp: NO RESULT (failed, or exceeded STEP_MIN=$STEP_MIN min) - continuing" >&2
+        echo "### NO RESULT" >> "$LOG"
+    fi
 }
 
 # runr: run REPEAT times

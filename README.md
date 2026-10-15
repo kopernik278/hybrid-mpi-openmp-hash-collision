@@ -166,6 +166,9 @@ sbatch --nodes=1 --time=00:05:00 --export=ALL,EXPS=smoke slurm/kaya.slurm
 sbatch --nodes=1 slurm/kaya.slurm    # likewise for --nodes=2 and --nodes=4
 ```
 
+Each run is limited to `STEP_MIN` minutes (10 by default in the Slurm scripts). A run that takes longer
+is killed and logged as `NO RESULT`, and the job continues with the next run.
+
 Copy `results/*.jsonl` back and run `python3 scripts/analyse.py`. The figures and tables in
 `report/` gain the Kaya and Setonix panels automatically.
 

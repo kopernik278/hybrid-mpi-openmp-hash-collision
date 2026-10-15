@@ -66,5 +66,6 @@ if [ -z "${EXPS:-}" ]; then
     esac
 fi
 export EXPS
+export STEP_MIN=${STEP_MIN:-10}   # one slow configuration cannot use up the whole job
 lscpu > "results/kaya-${SLURM_JOB_ID}.lscpu" 2>/dev/null
 scripts/suite.sh
