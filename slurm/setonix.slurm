@@ -14,7 +14,7 @@
 #   Run fewer experiments with e.g.  sbatch --nodes=4 --export=ALL,EXPS="scale batch" ...
 #
 #SBATCH --job-name=birthday
-#SBATCH --account=courses0100        # <-- CHANGE to your Pawsey project code (run `groups` on Setonix)
+#SBATCH --account=courses0101        # <-- CHANGE to your Pawsey project code (run `groups` on Setonix)
 #SBATCH --partition=work
 #SBATCH --ntasks-per-node=128
 #SBATCH --cpus-per-task=1

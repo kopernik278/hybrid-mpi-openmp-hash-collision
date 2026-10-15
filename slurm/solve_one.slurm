@@ -7,7 +7,7 @@
 # (--ntasks-per-node=12) for the 96-core nodes, and add 'module load gcc openmpi'.
 #
 #SBATCH --job-name=birthday-solve
-#SBATCH --account=courses0100        # <-- CHANGE (Setonix project code; delete on Kaya)
+#SBATCH --account=courses0101        # <-- CHANGE (Setonix project code; delete on Kaya)
 #SBATCH --partition=work             # <-- CHANGE on Kaya
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=16
