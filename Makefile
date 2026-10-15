@@ -42,6 +42,13 @@ else
   CC      := gcc
   MPICC   ?= mpicc
   OMPFLAG := -fopenmp
+  # A fresh Kaya login has no MPI module loaded, so mpicc is not on PATH.  Then
+  # run the MPI compiles in a login shell (where Lmod's `module` exists) that
+  # loads $(MPI_MODULES) first, so a plain `make` builds everything.
+  ifeq ($(shell command -v $(MPICC) 2>/dev/null),)
+    MPI_MODULES ?= gcc openmpi
+    MPIENV := bash -lc 'module load $(MPI_MODULES) >/dev/null 2>&1; command -v "$$0" >/dev/null || { echo "error: $$0 not found - load an MPI module (e.g. module load $(MPI_MODULES))" >&2; exit 127; }; exec "$$0" "$$@"'
+  endif
 endif
 
 CFLAGS ?= -O3
@@ -59,10 +66,10 @@ birthday_omp: $(SRCS) $(HDRS)
 	$(CC) $(CFLAGS) $(OMPFLAG) -o $@ $(SRCS) $(LDLIBS)
 
 birthday_mpi: $(SRCS) $(HDRS)
-	$(MPICC) $(CFLAGS) -DUSE_MPI -o $@ $(SRCS) $(LDLIBS)
+	$(MPIENV) $(MPICC) $(CFLAGS) -DUSE_MPI -o $@ $(SRCS) $(LDLIBS)
 
 birthday_hybrid: $(SRCS) $(HDRS)
-	$(MPICC) $(CFLAGS) -DUSE_MPI $(OMPFLAG) -o $@ $(SRCS) $(LDLIBS)
+	$(MPIENV) $(MPICC) $(CFLAGS) -DUSE_MPI $(OMPFLAG) -o $@ $(SRCS) $(LDLIBS)
 
 # Quick end-to-end check: 3 distinct collisions on the smallest pair using the
 # fast kernel, then the reference Python checker on the written files.
