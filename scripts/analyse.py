@@ -98,7 +98,7 @@ def scaling(df):
     if s.empty:
         return
     plats = platforms(s)
-    fig, axes = plt.subplots(2, len(plats), figsize=(2.45 * len(plats), 4.3), squeeze=False)
+    fig, axes = plt.subplots(2, len(plats), figsize=(2.45 * len(plats), 3.95), squeeze=False)
     fig.subplots_adjust(hspace=0.55, wspace=0.38)
     rows = []
     for col, plat in enumerate(plats):
@@ -169,12 +169,42 @@ def scaling(df):
 
 
 # ---------------------------------------------------------------- batch size
+def failed_batch_runs(plat):
+    """(impl, kernel, B) of batch runs that started but produced no result
+    (out of memory, cancelled, killed by STEP_MIN), from results/<plat>.log."""
+    import re
+    path = os.path.join(ROOT, "results", f"{plat}.log")
+    if not os.path.exists(path):
+        return set()
+    runs, cur, ok = [], None, False
+    for line in open(path, errors="replace"):
+        if line.startswith("### ") and not line.startswith("### NO RESULT"):
+            if cur:
+                runs.append((cur, ok))
+            cur, ok = line, False
+        elif line.startswith("JSON "):
+            ok = True
+    if cur:
+        runs.append((cur, ok))
+    failed, good = set(), set()
+    for cmd, ok in runs:
+        m = re.search(r"-B (\d+)", cmd)
+        if not cmd.startswith("### batch:") or not m:
+            continue
+        key = ("hybrid" if "birthday_hybrid" in cmd else "mpi", "fast" if "--fast" in cmd else "full", int(m.group(1)))
+        (good if ok else failed).add(key)
+    return failed - good
+
+
 def batch(df):
     b = df[df.exp == "batch"]
     srch = df[df.exp == "search"]
     # only platforms with a real sweep (>= 4 batch sizes of the full-kernel MPI runs)
     plats = [p for p in platforms(b)
              if b[(b.platform == p) & (b.impl == "mpi") & (b.kernel == "full")].batch.nunique() >= 4]
+    # the clusters are what matter; show the development machine only as a fallback
+    if len([p for p in plats if p != "m4"]) >= 2:
+        plats = [p for p in plats if p != "m4"]
     if not plats:
         return
     fig, axes = plt.subplots(len(plats), 3, figsize=(7.2, 1.8 * len(plats)), squeeze=False)
@@ -184,18 +214,26 @@ def batch(df):
         d = b[b.platform == plat]
         a0, a1, a2 = axes[r]
         ranks = int(d[d.impl == "mpi"].ranks.max())
-        sets = [(d[(d.impl == "mpi") & (d.kernel == "full")], "MPI, full kernel"),
-                (d[(d.impl == "hybrid") & (d.kernel == "full")], "hybrid, full kernel"),
-                (d[(d.impl == "mpi") & (d.kernel == "fast")], "MPI, fast kernel")]
-        for i, (e, lab) in enumerate(sets):
+        failed = failed_batch_runs(plat)
+        sets = [("mpi", "full", "MPI, full kernel"), ("hybrid", "full", "hybrid, full kernel"),
+                ("mpi", "fast", "MPI, fast kernel")]
+        for i, (impl, kern, lab) in enumerate(sets):
+            e = d[(d.impl == impl) & (d.kernel == kern)]
             if e.empty:
                 continue
             e = e.groupby("batch", as_index=False).agg(
                 throughput=("throughput", "max"), t_comm_max=("t_comm_max", "min"),
                 elapsed=("elapsed", "min"), msgs=("msgs", "first"),
                 ranks=("ranks", "first"), threads=("threads", "first"))
-            line(a0, e.batch, e.throughput / e.throughput.max(), i, lab)
-            line(a1, e.batch, 100 * e.t_comm_max / e.elapsed, i, lab)
+            # runs that failed or hung: break the line there and mark them with x at 0
+            miss = sorted(bb for (fi, fk, bb) in failed if fi == impl and fk == kern
+                          and bb not in set(e.batch))
+            full = e.set_index("batch").reindex(sorted(set(e.batch) | set(miss)))
+            line(a0, full.index, full.throughput / e.throughput.max(), i, lab)
+            line(a1, full.index, 100 * full.t_comm_max / full.elapsed, i, lab)
+            if miss:
+                a0.scatter(miss, [0.02] * len(miss), marker="x", s=28, color=C[i], linewidths=1.6,
+                           zorder=5, clip_on=False, label="no result (failed/hung)")
             for _, x in e.iterrows():
                 rows.append((name(plat), lab, int(x.ranks), int(x.threads), int(x.batch),
                              int(x.msgs), x.throughput, 100 * x.t_comm_max / x.elapsed))
@@ -220,8 +258,12 @@ def batch(df):
             a1.set_title("(b) master time in routing/MPI")
             a2.set_title("(c) search, $K=1$, fixed seed")
         if r == len(plats) - 1:
-            h, lab = a0.get_legend_handles_labels()
-            fig.legend(h, lab, loc="upper center", ncol=3, bbox_to_anchor=(0.36, 0.02))
+            seen = {}
+            for ax in axes[:, 0]:
+                for h, lab in zip(*ax.get_legend_handles_labels()):
+                    seen.setdefault(lab, h)
+            fig.legend(list(seen.values()), list(seen.keys()), loc="upper center", ncol=4,
+                       bbox_to_anchor=(0.45, 0.02))
     save(fig, "batch.pdf")
     pd.DataFrame(rows, columns=["plat", "set", "ranks", "threads", "B", "msgs", "thr", "comm_pct"]).to_csv(
         os.path.join(TAB, "batch.csv"), index=False)

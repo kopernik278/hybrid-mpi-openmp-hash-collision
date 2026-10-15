@@ -29,9 +29,9 @@ $n$ trials per file about $n^2/2^{48}$ cross-file collisions are expected. The $
 therefore needs $2^{25}\Gamma(K{+}\tfrac12)/\Gamma(K)\approx2^{25}\sqrt K$ trials ($3.0\times10^7$
 for $K{=}1$), and every trial must be stored until it is matched.
 
-Process $r$ uses nonces $s\,2^{56}+r\,2^{40}+c$, so trials are never repeated, need no coordination,
-and every process does equal work. Units of eight nonces alternate between A and B, keeping both
-populations equal.
+Process $r$ uses nonces $s\,2^{56}+r\,2^{40}+c$, so trials are never repeated or coordinated, and
+every process does equal work. Units of eight nonces alternate between A and B, keeping both
+populations equal in size.
 
 The FNV state of the 16-byte prefix is cached; a trial then hashes the nonce and the remaining
 64--920\,KiB. One FNV chain is limited by multiply latency, so the kernel advances eight nonces over
@@ -43,9 +43,8 @@ removes the intended workload, we use it only to expose communication limits.
 \section{Distributed collision detection}
 Process $h \bmod p$ owns hash $h$ and stores only its own hashes in an open-addressing table. The
 table is indexed by a multiplicative hash, so slot positions do not depend on $h \bmod p$. A record
-that meets a stored record from the other file is a collision, and the slot is then marked. Each hash
-therefore has one owner and is reported once, so collisions are globally distinct with no extra
-messages. \code{toy\_hash} ends in a 64-bit finaliser, so ownership is uniform. Owners receive
+that meets a stored record from the other file is a collision, and the slot is then marked. With one
+owner per hash, collisions are globally distinct without extra messages. \code{toy\_hash} ends in a 64-bit finaliser, so ownership is uniform. Owners receive
 $N/p\pm\sqrt{N/p}$ records, which balances work and memory to within 0.1\% at $N/p{=}10^6$.
 
 \section{Communication, batching and termination}
@@ -63,7 +62,7 @@ processes see the same totals, so they stop at the same reduction once the total
 coordinator. They then exchange per-peer message counts (\code{MPI\_Ialltoall}) and drain all
 in-flight batches. Rank~0 gathers the collisions (\code{MPI\_Gatherv}) and verifies each of the first
 $K$ on its own, by patching the original files and recomputing \code{toy\_hash}, before writing.
-Benchmark mode runs exactly $N$ trials through the same pipeline and never stops early.
+Benchmark mode runs exactly $N$ trials through the same pipeline.
 
 \section{Hybrid MPI+OpenMP}
 Each process runs one parallel region. While the team hashes chunk $i$ into one of two record
@@ -72,7 +71,7 @@ and tests for termination; then it joins the hashing. Lane states are private an
 are shared read-only. Each unit writes a disjoint slice of the shared record buffer, so no locks are
 needed. MPI buffers, requests and the table slice belong to the master, and loop control changes only
 between barriers. Only the master calls MPI, so we request and check \code{MPI\_THREAD\_FUNNELED};
-\code{MULTIPLE} would add locking that we do not need.
+\code{MULTIPLE} would add needless locking.
 
 \begin{table}[t]
 \centering\small
@@ -100,8 +99,8 @@ against threads per process (1 = pure MPI).}
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.92\linewidth]{figures/batch.pdf}
-\caption{Batch size $B$ (alpha, no timed flush unless stated): (a) throughput; (b) master time
-spent communicating, overlapped with hashing in the hybrid; (c) time to the first collision.}
+\caption{Batch size $B$ (alpha, no timed flush unless stated): (a) throughput, $\times$ = run failed
+or hung; (b) master time spent communicating; (c) time to the first collision.}
 \label{fig:batch}
 \end{figure}
 
@@ -123,19 +122,22 @@ $X$ we report speedup $S=X/X_{\mathrm{serial}}$ and efficiency $E=S/\mathrm{core
 14--16\,M. On four Kaya nodes every pair was solved in 1.7--40\,s, against 83--480\,s on the laptop.
 
 \textbf{Scaling.} On one cluster node all programs reach $E=78$--81\%, and the best hybrid split reaches
-88--92\% (Figure~\ref{fig:scaling}, Table~\ref{tab:scaling}). OpenMP loses as much, so this is probably
-the clock dropping from single-core boost under full load. Across nodes, pure MPI falls to
+88--92\% (Figure~\ref{fig:scaling}, Table~\ref{tab:scaling}). OpenMP loses as much, probably to lower
+all-core clocks. Across nodes, pure MPI falls to
 39\% and 7\% on two and four Setonix nodes (64\% and 44\% on Kaya). Hybrid with 4--8 threads per
 process keeps 84--90\% ($S{=}436$ on 512 cores). The cause is the timed flush: each process sends
 partial batches to all $p{-}1$ owners every 100\,ms, so the message count grows as $p^2$. With 512
 processes, 25\,M messages carried 2.6 records each. Using $t$ threads per process divides $p$ by $t$
 and multiplies records per message by about $t^2$ (161 for $64\times8$).
 
-\textbf{Batch size.} On 384 Kaya processes the full kernel is within 4\% of its best from $B{=}16$, while the
-fast kernel gains 19$\times$ from $B{=}1$ to $B{=}4096$ (Figure~\ref{fig:batch}). On Setonix, $B{=}1$
-with 512 processes took 796\,s, and its fast-kernel run was killed for running out of memory. Larger
-batches delay detection by about $Bp/r$. With $B{=}4096$ the first collision took 32\,s and 582\,M
-trials (35\,s predicted), but 2.3\,s with the flush.
+\textbf{Batch size.} With the full kernel both clusters are compute-bound from $B{=}64$
+(Figure~\ref{fig:batch}), but $B{=}1$ took 796\,s on 512 Setonix processes against 12\,s on 384
+Kaya processes. The fast kernel sends 60$\times$ more records per second. On Kaya it gained
+19$\times$ from $B{=}1$ to 4096. On Setonix, 1 and 256\,KiB messages ($B{=}64$, 16384) reached
+1.2--1.4\,G trials/s, but 4--64\,KiB messages slowed it 15--35$\times$ or hung. This suggests
+unexpected eager messages overflowing Cray MPICH's receive buffers. Detection is delayed by about
+$Bp/r$: with $B{=}4096$ the first collision took 44\,s on Setonix and 32\,s on Kaya (45 and 35\,s
+predicted), but under 2.5\,s with the flush.
 
 \textbf{Multiple collisions.} Mean trials are within 5\% of $2^{25}\Gamma(K{+}\frac12)/\Gamma(K)$ for
 $K\ge2$ (Figure~\ref{fig:k}), so $K{=}16$ costs 3.4--4.0$\times$ the time of $K{=}1$, not 16$\times$:
@@ -144,9 +146,9 @@ the fast kernel on 384 processes, the 30\,M trials take 0.1\,s, but detection an
 1.5--2\,s, so 200--540 collisions were found for $K{=}1$.
 
 \textbf{Trade-offs.} A trial hashes 64--920\,KiB but sends 16\,bytes, so computation dominates while
-messages stay large. At scale the limits are message count ($\propto p^2$), detection delay ($Bp/r$)
-and buffer memory ($16pB$ bytes per process). Hybrid reduces all three, so for multi-node runs we
-choose 4--8 threads per process, $B$ of 256--1024 and the 100\,ms flush. Node-level aggregation, or a
-flush interval that grows with $p$, would help pure MPI.
+messages stay large. At scale, message count ($\propto p^2$), detection delay ($Bp/r$) and buffer
+memory ($16pB$ bytes per process) limit pure MPI. Hybrid reduces all three, so across nodes we use
+4--8 threads per process, $B$ of 64--1024 and the 100\,ms flush; node-level aggregation would also
+help.
 
 \end{document}
