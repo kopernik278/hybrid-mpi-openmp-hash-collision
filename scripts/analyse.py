@@ -207,12 +207,12 @@ def batch(df):
         plats = [p for p in plats if p != "m4"]
     if not plats:
         return
-    fig, axes = plt.subplots(len(plats), 3, figsize=(7.2, 1.8 * len(plats)), squeeze=False)
-    fig.subplots_adjust(wspace=0.42, hspace=0.7)
+    fig, axes = plt.subplots(len(plats), 4, figsize=(7.4, 1.8 * len(plats)), squeeze=False)
+    fig.subplots_adjust(wspace=0.5, hspace=0.7)
     rows = []
     for r, plat in enumerate(plats):
         d = b[b.platform == plat]
-        a0, a1, a2 = axes[r]
+        a0, am, a1, a2 = axes[r]
         ranks = int(d[d.impl == "mpi"].ranks.max())
         failed = failed_batch_runs(plat)
         sets = [("mpi", "full", "MPI, full kernel"), ("hybrid", "full", "hybrid, full kernel"),
@@ -230,6 +230,7 @@ def batch(df):
                           and bb not in set(e.batch))
             full = e.set_index("batch").reindex(sorted(set(e.batch) | set(miss)))
             line(a0, full.index, full.throughput / e.throughput.max(), i, lab)
+            line(am, full.index, full.msgs, i, lab)
             line(a1, full.index, 100 * full.t_comm_max / full.elapsed, i, lab)
             if miss:
                 a0.scatter(miss, [0.02] * len(miss), marker="x", s=28, color=C[i], linewidths=1.6,
@@ -240,30 +241,33 @@ def batch(df):
         e = srch[srch.platform == plat]
         for i, fl in enumerate(sorted(e.flush_ms.unique())):
             g = e[e.flush_ms == fl].sort_values("batch")
-            lab = "size-only batching" if fl == 0 else f"+ {fl:g} ms flush"
+            lab = "size only" if fl == 0 else f"+{fl:g} ms flush"
             line(a2, g.batch, g.t_stop, i, lab)
         if not e.empty:
             a2.set_ylim(bottom=0)
             a2.legend(loc="best")
-        for a in (a0, a1, a2):
+        for a in (a0, am, a1, a2):
             a.set_xscale("log", base=4)
             plain(a, "x")
-            a.set_xlabel("batch size $B$ (records)")
+            a.set_xlabel("batch size $B$")
+        am.set_yscale("log")
+        am.set_ylabel("messages sent")
         a0.set_ylim(0, 1.08)
         a0.set_ylabel(f"{name(plat)}, {ranks} proc.\nthroughput / best")
         a1.set_ylabel("% of time in comm.")
         a2.set_ylabel("time to 1st collision (s)")
         if r == 0:
-            a0.set_title("(a) fixed-work throughput")
-            a1.set_title("(b) master time in routing/MPI")
-            a2.set_title("(c) search, $K=1$, fixed seed")
+            a0.set_title("(a) throughput")
+            am.set_title("(b) messages")
+            a1.set_title("(c) comm. overhead")
+            a2.set_title("(d) search, $K=1$")
         if r == len(plats) - 1:
             seen = {}
             for ax in axes[:, 0]:
                 for h, lab in zip(*ax.get_legend_handles_labels()):
                     seen.setdefault(lab, h)
             fig.legend(list(seen.values()), list(seen.keys()), loc="upper center", ncol=4,
-                       bbox_to_anchor=(0.45, 0.02))
+                       bbox_to_anchor=(0.5, 0.02))
     save(fig, "batch.pdf")
     pd.DataFrame(rows, columns=["plat", "set", "ranks", "threads", "B", "msgs", "thr", "comm_pct"]).to_csv(
         os.path.join(TAB, "batch.csv"), index=False)
