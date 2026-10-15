@@ -9,8 +9,12 @@
 \setlength{\parskip}{0.3ex}
 \setlength{\textfloatsep}{8pt}
 \setlength{\emergencystretch}{1.5em}
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.8}
+\setcounter{topnumber}{3}
+\setcounter{totalnumber}{4}
 \newcommand{\code}[1]{\texttt{#1}}
-\newcommand{\todo}[1]{\par\noindent\colorbox{yellow!40}{\parbox{\dimexpr\linewidth-2\fboxsep}{\small\textbf{TODO:} #1}}\par}
 
 \title{\vspace{-1.4cm}CITS3402/5507 Assignment 2: a distributed birthday attack with MPI and OpenMP}
 \author{Shaoming Wu (24914408)}
@@ -49,8 +53,8 @@ Each process buffers $B$ 16-byte records per destination; records it owns are in
 buffers are sent with \code{MPI\_Issend}, at most two in flight per destination. Synchronous sends
 make this credit-based flow control; with eager \code{MPI\_Isend}, producers flooded slower owners. Owners receive with \code{MPI\_Improbe}/\code{MPI\_Mrecv}, at most
 $p$ messages per poll, and every waiting loop keeps receiving, which rules out deadlock. The master
-also polls MPI between its own work units. Without asynchronous progress, rendezvous transfers
-otherwise waited a whole iteration, which cost 25\% of throughput at $B{=}1024$. A larger $B$ means
+also polls MPI between its own work units; without asynchronous progress, rendezvous transfers
+otherwise waited a whole iteration ($-25\%$ throughput at $B{=}1024$). A larger $B$ means
 fewer messages but later detection: a buffer fills at rate $r/p$, delaying candidates by up to
 $Bp/r$, which \code{--flush-ms} (default 100\,ms) caps.
 
@@ -72,87 +76,77 @@ between barriers. Only the master calls MPI, so we request and check \code{MPI\_
 
 \begin{table}[t]
 \centering\small
-\caption{Per pair: single-core kernel throughput (trials/s), and the 8-core hybrid ($2\times4$) run
-that produced the submitted files: time $t_1$ and the trials it used.}
+\caption{Single-core full-kernel throughput and time to the first verified collision (hybrid; Kaya
+4 nodes, $96\times4$; M4 $2\times4$).}
 \label{tab:pairs}
 \input{tables/pairs.tex}
 \end{table}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.49\linewidth]{figures/scaling.pdf}\hfill
-\includegraphics[width=0.49\linewidth]{figures/hybrid.pdf}
-\caption{Fixed-work scaling (gamma, best of three runs). Left: speedup. Right: hybrid throughput
-relative to pure MPI.}
+\includegraphics[width=\linewidth]{figures/scaling.pdf}
+\caption{Fixed-work scaling (gamma). Top: best speedup per core count. Bottom: whole-node efficiency
+against threads per process (1 = pure MPI).}
 \label{fig:scaling}
 \end{figure}
 
 \begin{table}[t]
 \centering\small
-\caption{Fixed-work results for whole nodes (best split).}
+\caption{Fixed-work results for whole nodes (best hybrid split).}
 \label{tab:scaling}
-\input{tables/scaling.tex}
+\footnotesize\input{tables/scaling.tex}
 \end{table}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figures/batch.pdf}
-\caption{Batch size $B$ (8 processes, alpha): (a) throughput; (b) master time spent communicating,
-which the hybrid overlaps with hashing; (c) time to the first collision (fixed seed), relative to the fastest $B$.}
+\includegraphics[width=0.92\linewidth]{figures/batch.pdf}
+\caption{Batch size $B$ (alpha, no timed flush unless stated): (a) throughput; (b) master time
+spent communicating, overlapped with hashing in the hybrid; (c) time to the first collision.}
 \label{fig:batch}
 \end{figure}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.9\linewidth]{figures/kcoll.pdf}
-\caption{$K$ distinct collisions (alpha, 8 cores). Left: trials for each seed and their mean, against
-theory. Right: full-kernel search time.}
+\includegraphics[width=0.66\linewidth]{figures/kcoll.pdf}
+\caption{$K$ distinct collisions (alpha): (a) trials for ten seeds (dots) and their mean against
+theory; (b) full-kernel time relative to $K{=}1$.}
 \label{fig:k}
 \end{figure}
 
 \section{Performance}
-\textbf{Method.} Development runs used an Apple M4 (4 performance and 6 efficiency cores,
-MPICH~4.3) with 8 processes. We report throughput $X$ (trials/s), speedup $S=X/X_{\mathrm{serial}}$
-and efficiency $E=S/\mathrm{cores}$.
-%TC:ignore
-\todo{Kaya and Setonix: run \code{sbatch --nodes=\{1,2,4\} slurm/setonix.slurm} and
-\code{slurm/kaya.slurm}, copy \code{results/*.jsonl} back, run \code{scripts/analyse.py} (the
-figures and tables gain panels and rows automatically), and replace this box with 3--4 sentences:
-multi-node $S$/$E$ of MPI versus hybrid (Table~\ref{tab:scaling}), the best ranks$\times$threads
-split (Figure~\ref{fig:scaling}), $B$ at 512 processes (Figure~\ref{fig:batch}), and Kaya versus
-Setonix per-core throughput.}
-%TC:endignore
+\textbf{Platforms.} Setonix nodes have two 64-core AMD EPYC 7763 (Cray MPICH). Kaya nodes have two
+48-core EPYC 9474F (OpenMPI, \code{mpirun}). Development used an Apple M4 (8 mixed performance/efficiency cores). From throughput
+$X$ we report speedup $S=X/X_{\mathrm{serial}}$ and efficiency $E=S/\mathrm{cores}$.
 
-\textbf{Kernel and time to solution.} Full-kernel throughput falls with file size, from 113\,k to
-8.0\,k trials/s per core (Table~\ref{tab:pairs}). Collisions took 83--480\,s on 8 cores, depending
-also on the random number of trials (7.8--37\,M). The fast kernel sustains about 46\,M trials/s on
-every pair.
+\textbf{Kernel and time to solution.} Per-core throughput falls with file size, from 52\,k to
+3.7\,k trials/s on Setonix and 61\,k to 4.0\,k on Kaya (Table~\ref{tab:pairs}); the fast kernel gives
+14--16\,M. On four Kaya nodes every pair was solved in 1.7--40\,s, against 83--480\,s on the laptop.
 
-\textbf{Fixed-work scaling.} On the four performance cores, all programs reach $S=3.6$--$3.8$
-($E\ge89\%$), and communication takes under 1\% of the time (Figure~\ref{fig:scaling},
-Table~\ref{tab:scaling}). Beyond four cores the curve flattens to $S\approx4.7$ at eight, because
-the extra cores are efficiency cores, about a third as fast. Every ranks$\times$threads split is
-within 2\% of pure MPI, since the master's communication overlaps with hashing.
+\textbf{Scaling.} On one cluster node all programs reach $E=78$--81\%, and the best hybrid split reaches
+88--92\% (Figure~\ref{fig:scaling}, Table~\ref{tab:scaling}). OpenMP loses as much, so this is probably
+the clock dropping from single-core boost under full load. Across nodes, pure MPI falls to
+39\% and 7\% on two and four Setonix nodes (64\% and 44\% on Kaya). Hybrid with 4--8 threads per
+process keeps 84--90\% ($S{=}436$ on 512 cores). The cause is the timed flush: each process sends
+partial batches to all $p{-}1$ owners every 100\,ms, so the message count grows as $p^2$. With 512
+processes, 25\,M messages carried 2.6 records each. Using $t$ threads per process divides $p$ by $t$
+and multiplies records per message by about $t^2$ (161 for $64\times8$).
 
-\textbf{Batch size.} Small batches are message-bound (Figure~\ref{fig:batch}). At $B{=}1$, 1.8\,M
-messages, and only $2B$ records per owner poll under the credit limit, cut throughput to 20\% of peak
-with the full kernel and 6\% with the fast kernel. From $B\approx64$ the full kernel is
-compute-bound, while the communication-bound fast kernel keeps improving until $B{=}4096$ (72\,M
-trials/s). Hybrid $2\times4$ keeps 84\% at $B{=}1$, because it has a quarter of the destinations and
-hides messages behind hashing. In search mode, $B{=}65536$ added 5\% extra trials; the 100\,ms flush
-removed them.
+\textbf{Batch size.} On 384 Kaya processes the full kernel is within 4\% of its best from $B{=}16$, while the
+fast kernel gains 19$\times$ from $B{=}1$ to $B{=}4096$ (Figure~\ref{fig:batch}). On Setonix, $B{=}1$
+with 512 processes took 796\,s, and its fast-kernel run was killed for running out of memory. Larger
+batches delay detection by about $Bp/r$. With $B{=}4096$ the first collision took 32\,s and 582\,M
+trials (35\,s predicted), but 2.3\,s with the flush.
 
-\textbf{Multiple collisions.} Over ten seeds, mean trials are within 5\% of
-$2^{25}\Gamma(K{+}\frac12)/\Gamma(K)$ for $K\ge2$ (Figure~\ref{fig:k}). $K{=}1$ is within its
-$\pm52\%$ spread. $K{=}16$ therefore costs about 4.5$\times$ the work of $K{=}1$, not 16$\times$,
-because every stored record can pair with every later one; with the full kernel it took 307\,s
-against 77\,s. Memory grows in the same way. The stop lagged availability by only 1--5\% of trials.
+\textbf{Multiple collisions.} Mean trials are within 5\% of $2^{25}\Gamma(K{+}\frac12)/\Gamma(K)$ for
+$K\ge2$ (Figure~\ref{fig:k}), so $K{=}16$ costs 3.4--4.0$\times$ the time of $K{=}1$, not 16$\times$:
+each stored record can pair with every later one. Termination adds no messages but has latency. With
+the fast kernel on 384 processes, the 30\,M trials take 0.1\,s, but detection and the global stop took
+1.5--2\,s, so 200--540 collisions were found for $K{=}1$.
 
-\textbf{Trade-offs and scalability.} A trial hashes 64--920\,KiB but sends only 16\,bytes, so for
-$B\ge64$ the attack is compute-bound and should scale almost linearly across nodes. At scale the
-limits are latency and memory. The detection delay $Bp/r$ and the buffer memory of $16pB$ bytes per
-process grow with $p$ (8\,MB at $p{=}512$, $B{=}1024$), and the table needs about $0.5\sqrt K$\,GB.
-Hybrid divides $p$ by the number of threads and so reduces both, which makes it our choice across
-nodes.
+\textbf{Trade-offs.} A trial hashes 64--920\,KiB but sends 16\,bytes, so computation dominates while
+messages stay large. At scale the limits are message count ($\propto p^2$), detection delay ($Bp/r$)
+and buffer memory ($16pB$ bytes per process). Hybrid reduces all three, so for multi-node runs we
+choose 4--8 threads per process, $B$ of 256--1024 and the 100\,ms flush. Node-level aggregation, or a
+flush interval that grows with $p$, would help pure MPI.
 
 \end{document}

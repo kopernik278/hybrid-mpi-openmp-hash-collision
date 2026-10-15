@@ -20,6 +20,8 @@
 #   REPEAT    repetitions of each scale/batch configuration (default 1;
 #             the analysis keeps the best run, removing interference)
 #   SEEDS     seeds for the kfast experiment (default 0..9)
+#   BLIST     batch sizes of the batch experiment (default 1 4 16 ... 16384)
+#   HBLIST    batch sizes of its hybrid part      (default 1 16 256 4096)
 #
 # Example (local):  PLATFORM=m4 CPN=8 EXPS="scale batch" scripts/suite.sh
 set -u
@@ -36,6 +38,8 @@ SRUN_EXTRA=${SRUN_EXTRA:-}
 SID=${SID:-}
 REPEAT=${REPEAT:-1}
 SEEDS=${SEEDS:-"0 1 2 3 4 5 6 7 8 9"}
+BLIST=${BLIST:-"1 4 16 64 256 1024 4096 16384"}
+HBLIST=${HBLIST:-"1 16 256 4096"}
 TOTAL=$((NODES * CPN))
 mkdir -p "$(dirname "$OUT")"
 
@@ -128,12 +132,12 @@ scale)  # fixed-work throughput: serial, OpenMP, MPI and hybrid (gamma pair, ful
     done ;;
 
 batch)  # batch size: messages, communication time, throughput (no timed flush)
-    for b in 1 4 16 64 256 1024 4096 16384; do
+    for b in $BLIST; do
         runr batch "$TOTAL" 1 birthday_mpi $A1 --benchmark $((TOTAL * 262144)) -B $b --flush-ms 0
         runr batch "$TOTAL" 1 birthday_mpi $A1 --benchmark $((TOTAL * 4194304)) -B $b --flush-ms 0 --fast
     done
     ht=4; [ "$CPN" -lt 4 ] && ht=1
-    for b in 1 16 256 4096; do
+    for b in $HBLIST; do
         runr batch $((TOTAL / ht)) $ht birthday_hybrid $A1 --benchmark $((TOTAL * 262144)) -B $b --flush-ms 0
     done ;;
 

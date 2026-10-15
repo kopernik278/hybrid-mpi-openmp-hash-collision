@@ -1,7 +1,25 @@
 \begin{tabular}{lrrrrrr}
 \toprule
-program & nodes & ranks$\times$thr. & cores & $X$ & $S$ & $E$\\
-\midrule\multicolumn{7}{l}{\textit{Apple M4 (dev.)}, 8 cores per node}\\
+program & nodes & ranks$\times$thr. & cores & $X$ (trials/s) & $S$ & $E$\\
+\midrule\multicolumn{7}{l}{\textit{Setonix}}\\
+serial & 1 & 1$\times$1 & 1 & 14.8\,k & 1.0 & 100\%\\
+OpenMP & 1 & 1$\times$128 & 128 & 1.51\,M & 101.7 & 79\%\\
+MPI & 1 & 128$\times$1 & 128 & 1.54\,M & 103.8 & 81\%\\
+hybrid & 1 & 64$\times$2 & 128 & 1.67\,M & 112.8 & 88\%\\
+MPI & 2 & 256$\times$1 & 256 & 1.49\,M & 100.3 & 39\%\\
+hybrid & 2 & 64$\times$4 & 256 & 3.28\,M & 220.8 & 86\%\\
+MPI & 4 & 512$\times$1 & 512 & 505.4\,k & 34.0 & 7\%\\
+hybrid & 4 & 64$\times$8 & 512 & 6.48\,M & 436.4 & 85\%\\
+\midrule\multicolumn{7}{l}{\textit{Kaya}}\\
+serial & 1 & 1$\times$1 & 1 & 17.3\,k & 1.0 & 100\%\\
+OpenMP & 1 & 1$\times$96 & 96 & 1.30\,M & 75.1 & 78\%\\
+MPI & 1 & 96$\times$1 & 96 & 1.30\,M & 74.9 & 78\%\\
+hybrid & 1 & 48$\times$2 & 96 & 1.53\,M & 88.4 & 92\%\\
+MPI & 2 & 192$\times$1 & 192 & 2.12\,M & 122.5 & 64\%\\
+hybrid & 2 & 48$\times$4 & 192 & 2.98\,M & 172.6 & 90\%\\
+MPI & 4 & 384$\times$1 & 384 & 2.91\,M & 168.3 & 44\%\\
+hybrid & 4 & 96$\times$4 & 384 & 5.81\,M & 335.8 & 87\%\\
+\midrule\multicolumn{7}{l}{\textit{Apple M4}}\\
 serial & 1 & 1$\times$1 & 1 & 32.4\,k & 1.0 & 100\%\\
 OpenMP & 1 & 1$\times$8 & 8 & 153.6\,k & 4.7 & 59\%\\
 MPI & 1 & 8$\times$1 & 8 & 149.6\,k & 4.6 & 58\%\\

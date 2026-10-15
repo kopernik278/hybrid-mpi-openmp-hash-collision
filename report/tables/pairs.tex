@@ -1,13 +1,13 @@
-\begin{tabular}{lrrrrr}
+\begin{tabular}{lrrrrrr}
 \toprule
- & & \multicolumn{4}{c}{Apple M4 (dev.)}\\
-pair & KiB & full/s & fast/s & $t_{1}$ (s) & trials (M)\\
+ & & \multicolumn{3}{c}{full kernel, trials/s per core} & \multicolumn{2}{c}{time to collision $t_1$ (s)}\\
+pair & KiB & Setonix & Kaya & Apple M4 & Kaya (384 c.) & Apple M4 (8 c.)\\
 \midrule
-1\_alpha & 65 & 113.4\,k & 46.2\,M & 82.9 & 37.0\\
-2\_beta & 130 & 57.0\,k & 46.1\,M & 87.5 & 18.5\\
-3\_gamma & 230 & 32.2\,k & 46.3\,M & 128.8 & 15.1\\
-4\_delta & 350 & 21.2\,k & 45.6\,M & 273.8 & 21.4\\
-5\_epsilon & 500 & 14.7\,k & 45.1\,M & 140.8 & 7.8\\
-6\_zeta & 920 & 8.0\,k & 45.4\,M & 480.3 & 14.9\\
+1\_alpha & 65 & 52.2\,k & 61.1\,k & 113.4\,k & 1.7 & 82.9\\
+2\_beta & 130 & 26.3\,k & 30.4\,k & 57.0\,k & 2.0 & 87.5\\
+3\_gamma & 230 & 14.8\,k & 16.5\,k & 32.2\,k & 3.9 & 128.8\\
+4\_delta & 350 & 9.8\,k & 11.2\,k & 21.2\,k & 12.7 & 273.8\\
+5\_epsilon & 500 & 6.8\,k & 7.5\,k & 14.7\,k & 8.8 & 140.8\\
+6\_zeta & 920 & 3.7\,k & 4.0\,k & 8.0\,k & 39.8 & 480.3\\
 \bottomrule
 \end{tabular}
